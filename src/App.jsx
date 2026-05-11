@@ -8,25 +8,23 @@ export default function App() {
   const [page, setPage] = useState("loading");
   const [userData, setUserData] = useState(null);
 
-  // On mount — check if user has already done assessment
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         setUserData(parsed);
-        setPage("dashboard"); // returning user → straight to dashboard
+        setPage("dashboard");
       } else {
-        setPage("landing"); // new user → show landing page
+        setPage("landing");
       }
     } catch {
       setPage("landing");
     }
   }, []);
 
-  const handleStartAssessment = () => {
-    setPage("onboarding");
-  };
+  const handleStartAssessment = () => setPage("onboarding");
+  const handleBackToLanding = () => setPage("landing");
 
   const handleOnboardingComplete = (data) => {
     const enriched = {
@@ -53,19 +51,14 @@ export default function App() {
     setPage("landing");
   };
 
-  // Update streak on every dashboard visit
   useEffect(() => {
     if (page === "dashboard" && userData) {
       const today = new Date().toDateString();
-      const lastVisit = userData.lastVisit
-        ? new Date(userData.lastVisit).toDateString()
-        : null;
-
+      const lastVisit = userData.lastVisit ? new Date(userData.lastVisit).toDateString() : null;
       if (lastVisit !== today) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const wasYesterday = lastVisit === yesterday.toDateString();
-
         const updated = {
           ...userData,
           lastVisit: new Date().toISOString(),
@@ -79,17 +72,7 @@ export default function App() {
 
   if (page === "loading") {
     return (
-      <div style={{
-        minHeight: "100vh",
-        background: "#faf6ef",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "'Cormorant Garamond', serif",
-        fontSize: 28,
-        fontWeight: 700,
-        color: "#b8893a",
-      }}>
+      <div style={{ minHeight: "100vh", background: "#faf6ef", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: "#b8893a" }}>
         NCLC<span style={{ color: "#0c1420" }}>7</span>
       </div>
     );
@@ -100,31 +83,13 @@ export default function App() {
   }
 
   if (page === "onboarding") {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    return <Onboarding onComplete={handleOnboardingComplete} onBack={handleBackToLanding} />;
   }
 
   if (page === "dashboard") {
     return (
-      <div style={{
-        minHeight: "100vh",
-        background: "#faf6ef",
-        fontFamily: "'Outfit', sans-serif",
-        color: "#0c1420",
-      }}>
-
-        {/* Nav */}
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "18px 40px",
-          borderBottom: "1px solid #e8dfd0",
-          background: "rgba(250,246,239,.92)",
-          backdropFilter: "blur(20px)",
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-        }}>
+      <div style={{ minHeight: "100vh", background: "#faf6ef", fontFamily: "'Outfit', sans-serif", color: "#0c1420" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 40px", borderBottom: "1px solid #e8dfd0", background: "rgba(250,246,239,.92)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 100 }}>
           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#0c1420" }}>
             NCLC<span style={{ color: "#b8893a" }}>7</span>
           </div>
@@ -140,27 +105,18 @@ export default function App() {
             </button>
           </div>
         </div>
-
-        {/* Body */}
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "80px 24px", textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 20 }}>🍁</div>
           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, fontWeight: 700, marginBottom: 10, color: "#0c1420", letterSpacing: "-0.5px" }}>
-            {userData?.joinedAt && new Date(userData.joinedAt).toDateString() === new Date().toDateString()
-              ? "Welcome to NCLC7"
-              : "Welcome back"}
+            {userData?.joinedAt && new Date(userData.joinedAt).toDateString() === new Date().toDateString() ? "Welcome to NCLC7" : "Welcome back"}
           </div>
           <div style={{ fontSize: 14, color: "#7a8499", marginBottom: 40, lineHeight: 1.7 }}>
-            Target <strong style={{ color: "#b8893a" }}>NCLC {userData?.targetNclc}</strong> · Starting from <strong style={{ color: "#0c1420" }}>{userData?.placedLevel}</strong>
-            {userData?.hasDate && userData?.examDate && (
-              <span> · Exam on <strong style={{ color: "#0c1420" }}>{userData.examDate}</strong></span>
-            )}
+            Target <strong style={{ color: "#b8893a" }}>NCLC {userData?.target}</strong> · Current level <strong style={{ color: "#0c1420" }}>{userData?.placed?.level || userData?.placedLevel}</strong>
           </div>
-
-          {/* Stats */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 40 }}>
             {[
-              { label: "Current Level", value: userData?.placedLevel || "—" },
-              { label: "Target NCLC", value: userData?.targetNclc || "—" },
+              { label: "Current Level", value: userData?.placed?.level || userData?.placedLevel || "—" },
+              { label: "Target NCLC", value: userData?.target || userData?.targetNclc || "—" },
               { label: "Day Streak", value: `${userData?.streak || 0} 🔥` },
             ].map((stat) => (
               <div key={stat.label} style={{ background: "#fff", border: "1px solid #e8dfd0", borderRadius: 12, padding: "18px 14px" }}>
@@ -169,8 +125,6 @@ export default function App() {
               </div>
             ))}
           </div>
-
-          {/* Modules */}
           <div style={{ background: "#fff", border: "1px solid #e8dfd0", borderRadius: 12, padding: "24px", textAlign: "left" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#0c1420", marginBottom: 16 }}>Your study modules</div>
             {[
@@ -186,9 +140,7 @@ export default function App() {
                   <div style={{ fontSize: 13, fontWeight: 500, color: "#0c1420", marginBottom: 2 }}>{m.label}</div>
                   <div style={{ fontSize: 11, color: "#7a8499" }}>{m.desc}</div>
                 </div>
-                <div style={{ fontSize: 11, color: "#b8893a", background: "rgba(184,137,58,.08)", border: "1px solid rgba(184,137,58,.2)", padding: "3px 10px", borderRadius: 100 }}>
-                  Coming soon
-                </div>
+                <div style={{ fontSize: 11, color: "#b8893a", background: "rgba(184,137,58,.08)", border: "1px solid rgba(184,137,58,.2)", padding: "3px 10px", borderRadius: 100 }}>Coming soon</div>
               </div>
             ))}
           </div>
