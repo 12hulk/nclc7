@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import LandingPage from "./pages/LandingPage";
 import Onboarding from "./pages/Onboarding";
+import Dashboard from "./pages/Dashboard";
 
 const STORAGE_KEY = "nclc7_user";
 
@@ -8,7 +9,7 @@ export default function App() {
   const [page, setPage] = useState("loading");
   const [userData, setUserData] = useState(null);
 
-  // On mount — check localStorage and handle browser back button
+  // On mount — check localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -24,16 +25,14 @@ export default function App() {
     }
   }, []);
 
-  // Browser back button — always goes to landing
+  // Browser back button — always returns to landing
   useEffect(() => {
-    const handlePopState = () => {
-      setPage("landing");
-    };
+    const handlePopState = () => setPage("landing");
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Update streak on dashboard visit
+  // Streak tracking on dashboard visit
   useEffect(() => {
     if (page === "dashboard" && userData) {
       const today = new Date().toDateString();
@@ -70,13 +69,14 @@ export default function App() {
       streak: 1,
       lastVisit: new Date().toISOString(),
       completedExercises: [],
+      vocabulary: [],
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
     setUserData(enriched);
     goTo("dashboard");
   };
 
-  const handleRetakeAssessment = () => {
+  const handleRetake = () => {
     localStorage.removeItem(STORAGE_KEY);
     setUserData(null);
     goTo("onboarding");
@@ -88,7 +88,11 @@ export default function App() {
     goTo("landing");
   };
 
-  // Loading screen
+  const handleStartModule = (moduleId) => {
+    // Modules coming next — placeholder for now
+    alert(`${moduleId} module coming soon!`);
+  };
+
   if (page === "loading") {
     return (
       <div style={{
@@ -122,101 +126,12 @@ export default function App() {
 
   if (page === "dashboard") {
     return (
-      <div style={{
-        minHeight: "100vh",
-        background: "#faf6ef",
-        fontFamily: "'Outfit', sans-serif",
-        color: "#0c1420",
-      }}>
-        {/* Nav */}
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "18px 40px",
-          borderBottom: "1px solid #e8dfd0",
-          background: "rgba(250,246,239,.92)",
-          backdropFilter: "blur(20px)",
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-        }}>
-          <div
-            style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#0c1420", cursor: "pointer" }}
-            onClick={handleLogout}
-          >
-            NCLC<span style={{ color: "#b8893a" }}>7</span>
-          </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <div style={{ fontSize: 12, color: "#7a8499", background: "rgba(184,137,58,.08)", border: "1px solid rgba(184,137,58,.2)", padding: "4px 12px", borderRadius: 100 }}>
-              🔥 {userData?.streak || 0} day streak
-            </div>
-            <button
-              onClick={handleRetakeAssessment}
-              style={{ fontSize: 13, color: "#7a8499", background: "transparent", border: "1px solid #e8dfd0", padding: "7px 14px", borderRadius: 6, cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
-            >
-              Retake Assessment
-            </button>
-            <button
-              onClick={handleLogout}
-              style={{ fontSize: 13, color: "#7a8499", background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div style={{ maxWidth: 640, margin: "0 auto", padding: "80px 24px", textAlign: "center" }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>🍁</div>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, fontWeight: 700, marginBottom: 10, color: "#0c1420", letterSpacing: "-0.5px" }}>
-            {userData?.joinedAt && new Date(userData.joinedAt).toDateString() === new Date().toDateString()
-              ? "Welcome to NCLC7"
-              : "Welcome back"}
-          </div>
-          <div style={{ fontSize: 14, color: "#7a8499", marginBottom: 40, lineHeight: 1.7 }}>
-            Target <strong style={{ color: "#b8893a" }}>NCLC {userData?.target}</strong> · Current level{" "}
-            <strong style={{ color: "#0c1420" }}>{userData?.placed?.level || userData?.placedLevel || "—"}</strong>
-          </div>
-
-          {/* Stats */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 40 }}>
-            {[
-              { label: "Current Level", value: userData?.placed?.level || userData?.placedLevel || "—" },
-              { label: "Target NCLC", value: userData?.target || userData?.targetNclc || "—" },
-              { label: "Day Streak", value: `${userData?.streak || 0} 🔥` },
-            ].map((stat) => (
-              <div key={stat.label} style={{ background: "#fff", border: "1px solid #e8dfd0", borderRadius: 12, padding: "18px 14px" }}>
-                <div style={{ fontSize: 11, color: "#7a8499", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.8px" }}>{stat.label}</div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: "#0c1420" }}>{stat.value}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Modules */}
-          <div style={{ background: "#fff", border: "1px solid #e8dfd0", borderRadius: 12, padding: "24px", textAlign: "left" }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#0c1420", marginBottom: 16 }}>Your study modules</div>
-            {[
-              { icon: "✍️", label: "Writing Practice", desc: "AI-scored essays with NCLC feedback" },
-              { icon: "🎧", label: "Listening Practice", desc: "Québec accent audio + comprehension" },
-              { icon: "📖", label: "Reading Practice", desc: "TCF-style passages and MCQs" },
-              { icon: "🗣️", label: "Speaking Practice", desc: "Prompts and model responses" },
-              { icon: "📚", label: "Vocabulary Builder", desc: "Immigration-context word banks" },
-            ].map((m) => (
-              <div key={m.label} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: "1px solid #f3ece0" }}>
-                <span style={{ fontSize: 20 }}>{m.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "#0c1420", marginBottom: 2 }}>{m.label}</div>
-                  <div style={{ fontSize: 11, color: "#7a8499" }}>{m.desc}</div>
-                </div>
-                <div style={{ fontSize: 11, color: "#b8893a", background: "rgba(184,137,58,.08)", border: "1px solid rgba(184,137,58,.2)", padding: "3px 10px", borderRadius: 100 }}>
-                  Coming soon
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <Dashboard
+        userData={userData}
+        onRetake={handleRetake}
+        onLogout={handleLogout}
+        onStartModule={handleStartModule}
+      />
     );
   }
 }
