@@ -8,6 +8,7 @@ export default function App() {
   const [page, setPage] = useState("loading");
   const [userData, setUserData] = useState(null);
 
+  // On mount — check localStorage and handle browser back button
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -23,38 +24,22 @@ export default function App() {
     }
   }, []);
 
-  const handleStartAssessment = () => setPage("onboarding");
-  const handleBackToLanding = () => setPage("landing");
-
-  const handleOnboardingComplete = (data) => {
-    const enriched = {
-      ...data,
-      joinedAt: new Date().toISOString(),
-      streak: 1,
-      lastVisit: new Date().toISOString(),
-      completedExercises: [],
+  // Browser back button — always goes to landing
+  useEffect(() => {
+    const handlePopState = () => {
+      setPage("landing");
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
-    setUserData(enriched);
-    setPage("dashboard");
-  };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
-  const handleRetakeAssessment = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setUserData(null);
-    setPage("onboarding");
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setUserData(null);
-    setPage("landing");
-  };
-
+  // Update streak on dashboard visit
   useEffect(() => {
     if (page === "dashboard" && userData) {
       const today = new Date().toDateString();
-      const lastVisit = userData.lastVisit ? new Date(userData.lastVisit).toDateString() : null;
+      const lastVisit = userData.lastVisit
+        ? new Date(userData.lastVisit).toDateString()
+        : null;
       if (lastVisit !== today) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
@@ -70,9 +55,53 @@ export default function App() {
     }
   }, [page]);
 
+  const goTo = (p) => {
+    window.history.pushState({ page: p }, "");
+    setPage(p);
+  };
+
+  const handleStartAssessment = () => goTo("onboarding");
+  const handleBackToLanding = () => goTo("landing");
+
+  const handleOnboardingComplete = (data) => {
+    const enriched = {
+      ...data,
+      joinedAt: new Date().toISOString(),
+      streak: 1,
+      lastVisit: new Date().toISOString(),
+      completedExercises: [],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
+    setUserData(enriched);
+    goTo("dashboard");
+  };
+
+  const handleRetakeAssessment = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setUserData(null);
+    goTo("onboarding");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setUserData(null);
+    goTo("landing");
+  };
+
+  // Loading screen
   if (page === "loading") {
     return (
-      <div style={{ minHeight: "100vh", background: "#faf6ef", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: "#b8893a" }}>
+      <div style={{
+        minHeight: "100vh",
+        background: "#faf6ef",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "'Cormorant Garamond', serif",
+        fontSize: 28,
+        fontWeight: 700,
+        color: "#b8893a",
+      }}>
         NCLC<span style={{ color: "#0c1420" }}>7</span>
       </div>
     );
@@ -83,36 +112,74 @@ export default function App() {
   }
 
   if (page === "onboarding") {
-    return <Onboarding onComplete={handleOnboardingComplete} onBack={handleBackToLanding} />;
+    return (
+      <Onboarding
+        onComplete={handleOnboardingComplete}
+        onBack={handleBackToLanding}
+      />
+    );
   }
 
   if (page === "dashboard") {
     return (
-      <div style={{ minHeight: "100vh", background: "#faf6ef", fontFamily: "'Outfit', sans-serif", color: "#0c1420" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 40px", borderBottom: "1px solid #e8dfd0", background: "rgba(250,246,239,.92)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 100 }}>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#0c1420" }}>
+      <div style={{
+        minHeight: "100vh",
+        background: "#faf6ef",
+        fontFamily: "'Outfit', sans-serif",
+        color: "#0c1420",
+      }}>
+        {/* Nav */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "18px 40px",
+          borderBottom: "1px solid #e8dfd0",
+          background: "rgba(250,246,239,.92)",
+          backdropFilter: "blur(20px)",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+        }}>
+          <div
+            style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#0c1420", cursor: "pointer" }}
+            onClick={handleLogout}
+          >
             NCLC<span style={{ color: "#b8893a" }}>7</span>
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <div style={{ fontSize: 12, color: "#7a8499", background: "rgba(184,137,58,.08)", border: "1px solid rgba(184,137,58,.2)", padding: "4px 12px", borderRadius: 100 }}>
               🔥 {userData?.streak || 0} day streak
             </div>
-            <button onClick={handleRetakeAssessment} style={{ fontSize: 13, color: "#7a8499", background: "transparent", border: "1px solid #e8dfd0", padding: "7px 14px", borderRadius: 6, cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}>
+            <button
+              onClick={handleRetakeAssessment}
+              style={{ fontSize: 13, color: "#7a8499", background: "transparent", border: "1px solid #e8dfd0", padding: "7px 14px", borderRadius: 6, cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
+            >
               Retake Assessment
             </button>
-            <button onClick={handleLogout} style={{ fontSize: 13, color: "#7a8499", background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}>
+            <button
+              onClick={handleLogout}
+              style={{ fontSize: 13, color: "#7a8499", background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
+            >
               Sign out
             </button>
           </div>
         </div>
+
+        {/* Body */}
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "80px 24px", textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 20 }}>🍁</div>
           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, fontWeight: 700, marginBottom: 10, color: "#0c1420", letterSpacing: "-0.5px" }}>
-            {userData?.joinedAt && new Date(userData.joinedAt).toDateString() === new Date().toDateString() ? "Welcome to NCLC7" : "Welcome back"}
+            {userData?.joinedAt && new Date(userData.joinedAt).toDateString() === new Date().toDateString()
+              ? "Welcome to NCLC7"
+              : "Welcome back"}
           </div>
           <div style={{ fontSize: 14, color: "#7a8499", marginBottom: 40, lineHeight: 1.7 }}>
-            Target <strong style={{ color: "#b8893a" }}>NCLC {userData?.target}</strong> · Current level <strong style={{ color: "#0c1420" }}>{userData?.placed?.level || userData?.placedLevel}</strong>
+            Target <strong style={{ color: "#b8893a" }}>NCLC {userData?.target}</strong> · Current level{" "}
+            <strong style={{ color: "#0c1420" }}>{userData?.placed?.level || userData?.placedLevel || "—"}</strong>
           </div>
+
+          {/* Stats */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 40 }}>
             {[
               { label: "Current Level", value: userData?.placed?.level || userData?.placedLevel || "—" },
@@ -125,6 +192,8 @@ export default function App() {
               </div>
             ))}
           </div>
+
+          {/* Modules */}
           <div style={{ background: "#fff", border: "1px solid #e8dfd0", borderRadius: 12, padding: "24px", textAlign: "left" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#0c1420", marginBottom: 16 }}>Your study modules</div>
             {[
@@ -140,7 +209,9 @@ export default function App() {
                   <div style={{ fontSize: 13, fontWeight: 500, color: "#0c1420", marginBottom: 2 }}>{m.label}</div>
                   <div style={{ fontSize: 11, color: "#7a8499" }}>{m.desc}</div>
                 </div>
-                <div style={{ fontSize: 11, color: "#b8893a", background: "rgba(184,137,58,.08)", border: "1px solid rgba(184,137,58,.2)", padding: "3px 10px", borderRadius: 100 }}>Coming soon</div>
+                <div style={{ fontSize: 11, color: "#b8893a", background: "rgba(184,137,58,.08)", border: "1px solid rgba(184,137,58,.2)", padding: "3px 10px", borderRadius: 100 }}>
+                  Coming soon
+                </div>
               </div>
             ))}
           </div>
